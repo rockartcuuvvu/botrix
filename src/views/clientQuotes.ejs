@@ -1,0 +1,70 @@
+<%- include('partials/header') %>
+
+<div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+  <div>
+    <h1 class="text-2xl font-extrabold text-slate-900">Submitted Quote Requests</h1>
+    <p class="text-slate-500 text-xs mt-1">Track status of your B2B quote requests and loaded catalogue pricing.</p>
+  </div>
+  <a href="/catalog" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center space-x-2">
+    <i class="fa-solid fa-paper-plane"></i>
+    <span>Request New Quote</span>
+  </a>
+</div>
+
+<% if (quotes && quotes.length > 0) { %>
+  <div class="space-y-4">
+    <% quotes.forEach(quote => { %>
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 mb-4 gap-2">
+          <div>
+            <span class="font-extrabold text-slate-900 text-base"><%= quote.requestNumber %></span>
+            <span class="text-xs text-slate-400 ml-2"><%= new Date(quote.createdAt).toLocaleDateString() %></span>
+          </div>
+          <div>
+            <% if (quote.status === 'Pending') { %>
+              <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full"><i class="fa-solid fa-clock mr-1"></i> Pending Review</span>
+            <% } else if (quote.status === 'Quoted' || quote.status === 'Accepted') { %>
+              <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full"><i class="fa-solid fa-circle-check mr-1"></i> Prices Loaded to Catalogue</span>
+            <% } else { %>
+              <span class="bg-rose-100 text-rose-800 text-xs font-bold px-3 py-1 rounded-full"><%= quote.status %></span>
+            <% } %>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Requested Items:</h4>
+          <% quote.items.forEach(item => { %>
+            <div class="flex items-center justify-between text-xs bg-slate-50 p-3 rounded-xl">
+              <div>
+                <span class="font-bold text-slate-800"><%= item.product ? item.product.title : item.customItemName %></span>
+                <span class="text-slate-500 text-xs ml-2">(Qty: <%= item.quantity %>)</span>
+                <% if (item.notes) { %><p class="text-slate-400 italic text-[11px] mt-0.5"><%= item.notes %></p><% } %>
+              </div>
+              <div>
+                <% if (item.offeredPrice > 0) { %>
+                  <span class="font-extrabold text-emerald-600 text-sm">$<%= item.offeredPrice.toFixed(2) %> / unit</span>
+                <% } else { %>
+                  <span class="text-slate-400 font-medium">Awaiting Quote</span>
+                <% } %>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+
+        <% if (quote.adminNotes) { %>
+          <div class="mt-4 bg-indigo-50 border border-indigo-100 p-3 rounded-xl text-xs text-indigo-900">
+            <strong>Admin Note:</strong> <%= quote.adminNotes %>
+          </div>
+        <% } %>
+      </div>
+    <% }); %>
+  </div>
+<% } else { %>
+  <div class="py-16 text-center bg-white rounded-2xl border border-slate-200">
+    <i class="fa-solid fa-file-signature text-4xl text-slate-300 mb-3"></i>
+    <h3 class="text-lg font-bold text-slate-800">No Quote Requests Found</h3>
+    <p class="text-slate-500 text-xs mt-1">You haven't submitted any quote requests yet.</p>
+  </div>
+<% } %>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus B2B - Direct Quote & Corporate Supply Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+  <nav class="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <a href="/" class="flex items-center space-x-2">
+            <span class="bg-indigo-600 text-white p-2 rounded-lg font-bold text-xl"><i class="fa-solid me-1 fa-boxes-packing"></i> NEXUS</span>
+            <span class="text-xs uppercase tracking-widest bg-indigo-950 text-indigo-300 px-2 py-1 rounded border border-indigo-700">B2B Solutions</span>
+          </a>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-6 text-sm font-medium">
+          <a href="/catalog?category=All" class="hover:text-indigo-400 transition">All Catalog</a>
+          <a href="/catalog?category=Stationery" class="hover:text-indigo-400 transition"><i class="fa-solid fa-pen-ruler mr-1"></i> Stationery</a>
+          <a href="/catalog?category=Online%20Development%20Packages" class="hover:text-indigo-400 transition"><i class="fa-solid fa-code mr-1"></i> Dev Packages</a>
+          <a href="/catalog?category=Computers" class="hover:text-indigo-400 transition"><i class="fa-solid fa-laptop mr-1"></i> Computers</a>
+          <a href="/catalog?category=Custom%20Requests" class="hover:text-indigo-400 transition"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Custom Solutions</a>
+        </div>
+
+        <div class="flex items-center space-x-4">
+          <% if (user) { %>
+            <% if (user.role === 'admin') { %>
+              <a href="/admin" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-2 rounded-md font-semibold transition"><i class="fa-solid fa-shield-halved mr-1"></i> Admin Portal</a>
+            <% } else { %>
+              <a href="/portal/catalogue" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-md font-semibold transition"><i class="fa-solid fa-box-open mr-1"></i> My Quoted Catalogue</a>
+              <a href="/portal" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-2 rounded-md font-semibold transition"><i class="fa-solid fa-user-gear mr-1"></i> Client Portal</a>
+            <% } %>
+            <a href="/api/auth/logout" class="text-slate-300 hover:text-white text-xs underline"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+          <% } else { %>
+            <a href="/login" class="text-slate-300 hover:text-white text-sm font-medium">Log In</a>
+            <a href="/register" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded-md font-semibold transition">Register B2B Account</a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Dynamic Banner Notice -->
+  <div class="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-indigo-100 py-2.5 px-4 text-center text-xs sm:text-sm font-medium border-b border-indigo-800 flex items-center justify-center space-x-2">
+    <i class="fa-solid fa-lock text-amber-400 text-sm"></i>
+    <span><strong>Strict B2B Quote-Gated Pricing:</strong> Register your business and submit a quote request to unlock personalized contract prices loaded directly to your catalogue!</span>
+  </div>
+
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">

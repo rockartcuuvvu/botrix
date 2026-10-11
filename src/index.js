@@ -1,176 +1,145 @@
-const express = require("express");
-const url = require("url");
-const dotenv = require("dotenv");
-const mongoose = require("mongoose");
-const routing = require("./routes/index");
-const passport = require("passport");
-const session = require("express-session");
-const Strategy = require("passport-discord").Strategy;
-const bodyParser = require("body-parser");
-const config = require("./config.json");
-var cookieParser = require("cookie-parser");
-const Discord = require("discord.js");
-const { Collection } = require("discord.js");
-const MemoryStore = require("memorystore")(session);
-const cors = require("cors");
-require("dotenv").config();
-const glob = require("glob");
-(async () => {
-  const sitemap = require("express-sitemap")();
-  let client = new Discord.Client();
-  let serverClient = new Discord.Client();
+const express = require('express');
+const http = require('http');
+const path = require('path');
+const mongoose = require('mongoose');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
+const { Server } = require('socket.io');
+require('dotenv').config();
 
-  //setting up mongoose
-  await mongoose.connect(config.MongoDbServer, {
-    useCreateIndex: true,
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+const { attachUser, requireAuth, requireClient, requireAdmin } = require('./middleware/auth');
+const authRoutes = require('./routes/authRoutes');
+const productRoutes = require('./routes/productRoutes');
+const quoteRoutes = require('./routes/quoteRoutes');
+const cartOrderRoutes = require('./routes/cartOrderRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+
+const productController = require('./controllers/productController');
+const quoteController = require('./controllers/quoteController');
+const cartOrderController = require('./controllers/cartOrderController');
+const messageController = require('./controllers/messageController');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*' } });
+
+app.set('io', io);
+
+// Middleware Setup
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(cors());
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'b2b_super_secret_session_key_2025',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
+  })
+);
+
+app.use(attachUser);
+
+// Views Configuration
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Socket.io Real-time In-App Chat Setup
+io.on('connection', (socket) => {
+  socket.on('joinClientRoom', (clientId) => {
+    socket.join(`client_${clientId}`);
   });
 
-  serverClient.on("ready", () => {
-    console.log(`${serverClient.user.tag} Is online and tracking guilds!`);
+  socket.on('joinAdminRoom', () => {
+    socket.join('admin_room');
   });
+});
 
-  //connecting to the discord bot
-  client.on("ready", () => {
-    console.log(
-      `Discord Client attached to express, logged in as: ${client.user.tag} \nBTX Internal Blockchian online and awaiting requests. \nBotrix Network online.`
-    );
-  });
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/quotes', quoteRoutes);
+app.use('/api/cart-orders', cartOrderRoutes);
+app.use('/api/messages', messageRoutes);
 
-  client.commands = new Collection();
-  client.aliases = new Collection();
-  client.limits = new Collection();
-  client.config = config;
+// View Page Routes
+app.get('/', productController.getAllProducts);
+app.get('/catalog', productController.getAllProducts);
+app.get('/products/:id', productController.getProductById);
 
-  serverClient.commands = new Collection();
-  serverClient.aliases = new Collection();
-  serverClient.limits = new Collection();
-  serverClient.config = config;
+app.get('/login', (req, res) => {
+  if (req.user) {
+    return res.redirect(req.user.role === 'admin' ? '/admin' : '/portal');
+  }
+  res.render('login', { user: null, error: null });
+});
 
-  const serverCommand = require("./bslBot/structures/command");
-  serverCommand.run(serverClient);
+app.get('/register', (req, res) => {
+  if (req.user) {
+    return res.redirect(req.user.role === 'admin' ? '/admin' : '/portal');
+  }
+  res.render('register', { user: null, error: null });
+});
 
-  const serverEvents = require("./bslBot/structures/event");
-  serverEvents.run(serverClient);
+// Client Portal Pages
+app.get('/portal', requireAuth, requireClient, (req, res) => {
+  res.render('portal/dashboard', { user: req.user });
+});
 
-  console.log("Connected to database on " + config.MongoDbServer);
-  var app = express();
+app.get('/portal/catalogue', requireAuth, requireClient, cartOrderController.getClientCatalogue);
+app.get('/portal/quotes', requireAuth, requireClient, quoteController.getClientQuoteRequests);
+app.get('/portal/orders', requireAuth, requireClient, cartOrderController.getClientOrders);
+app.get('/portal/messages', requireAuth, requireClient, messageController.getClientMessages);
 
-  //init our auth
-  passport.use(
-    new Strategy(
-      {
-        clientID: config.id,
-        clientSecret: config.clientSecret,
-        callbackURL: `${config.domain}/callback`,
-        scope: ["identify", "guilds"],
-      },
-      (accessToken, refreshToken, profile, done) => {
-        process.nextTick(() => done(null, profile));
-      }
-    )
-  );
+// Admin Pages
+app.get('/admin', requireAuth, requireAdmin, (req, res) => {
+  res.render('admin/dashboard', { user: req.user });
+});
+app.get('/admin/quotes', requireAuth, requireAdmin, quoteController.getAllQuoteRequests);
+app.get('/admin/orders', requireAuth, requireAdmin, cartOrderController.getAllOrders);
+app.get('/admin/messages', requireAuth, requireAdmin, messageController.getAdminChatThreads);
 
-  passport.serializeUser((user, done) => done(null, user));
-  passport.deserializeUser((obj, done) => done(null, obj));
+// 404 Handler
+app.use((req, res) => {
+  if (req.xhr || req.headers.accept?.includes('json')) {
+    return res.status(404).json({ error: 'Endpoint not found' });
+  }
+  res.status(404).render('error/404', { user: req.user || null });
+});
 
-  app.use(
-    session({
-      store: new MemoryStore({ checkPeriod: 86400000 }),
-      secret:
-        "#@%#&^$^$%@$^$&%#$%@#$%$^%&$%^#$%@#$%#E%#%@$FEErfgr3g#%GT%536c53cc6%5%tv%4y4hrgrggrgrgf4n",
-      resave: false,
-      saveUninitialized: false,
+// 500 Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled Application Error:', err);
+  if (req.xhr || req.headers.accept?.includes('json')) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+  res.status(500).render('error/500', { error: err, user: req.user || null });
+});
+
+// Database Connection and Server Startup
+const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/b2b_store';
+
+if (process.env.NODE_ENV !== 'test') {
+  mongoose
+    .connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => {
+      console.log('Connected to MongoDB');
+      server.listen(PORT, () => {
+        console.log(`B2B Store Server running at http://localhost:${PORT}`);
+      });
     })
-  );
-
-  app.use(passport.initialize());
-  app.use(passport.session());
-  app.use(cors());
-
-  //setting the app settings
-  app.set("view engine", "ejs");
-  app.set("client", client);
-  app.set("serverClient", serverClient);
-  app.set("views", "./src/views");
-  const checkAuth = (req, res, next) => {
-    if (req.isAuthenticated()) return next();
-    res.redirect("/login");
-  };
-
-  //authentication endpoints
-  app.get(
-    "/login",
-    (req, res, next) => {
-      req.session.backURL = req.get("Referer");
-      res.cookie("referer", req.get("Referer"));
-      if (req.session.backURL) {
-        req.session.backURL = req.session.backURL;
-      } else if (req.get("Referrer")) {
-        const parsed = url.parse(req.get("Referrer"));
-        if (parsed.hostname === app.locals.domain) {
-          req.session.backURL = parsed.path;
-        }
-      } else {
-        req.session.backURL = "/";
-      }
-      next();
-    },
-    passport.authenticate("discord")
-  );
-
-  app.get("/arc-sw.js", function (req, res) {
-    res.type("application/javascript");
-    res.send(
-      '!function(e){var t={};function r(n){if(t[n])return t[n].exports;var o=t[n]={i:n,l:!1,exports:{}};return e[n].call(o.exports,o,o.exports,r),o.l=!0,o.exports}r.m=e,r.c=t,r.d=function(e,t,n){r.o(e,t)||Object.defineProperty(e,t,{enumerable:!0,get:n})},r.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},r.t=function(e,t){if(1&t&&(e=r(e)),8&t)return e;if(4&t&&"object"==typeof e&&e&&e.__esModule)return e;var n=Object.create(null);if(r.r(n),Object.defineProperty(n,"default",{enumerable:!0,value:e}),2&t&&"string"!=typeof e)for(var o in e)r.d(n,o,function(t){return e[t]}.bind(null,o));return n},r.n=function(e){var t=e&&e.__esModule?function(){return e.default}:function(){return e};return r.d(t,"a",t),t},r.o=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)},r.p="",r(r.s=100)}({100:function(e,t,r){"use strict";r.r(t);var n=r(3);if("undefined"!=typeof ServiceWorkerGlobalScope){var o="https://arc.io"+n.k;importScripts(o)}else if("undefined"!=typeof SharedWorkerGlobalScope){var c="https://arc.io"+n.i;importScripts(c)}else if("undefined"!=typeof DedicatedWorkerGlobalScope){var i="https://arc.io"+n.b;importScripts(i)}},3:function(e,t,r){"use strict";r.d(t,"a",function(){return n}),r.d(t,"f",function(){return c}),r.d(t,"j",function(){return i}),r.d(t,"i",function(){return a}),r.d(t,"b",function(){return d}),r.d(t,"k",function(){return f}),r.d(t,"c",function(){return p}),r.d(t,"d",function(){return s}),r.d(t,"e",function(){return l}),r.d(t,"g",function(){return m}),r.d(t,"h",function(){return v});var n={images:["bmp","jpeg","jpg","ttf","pict","svg","webp","eps","svgz","gif","png","ico","tif","tiff","bpg"],video:["mp4","3gp","webm","mkv","flv","f4v","f4p","f4bogv","drc","avi","mov","qt","wmv","amv","mpg","mp2","mpeg","mpe","m2v","m4v","3g2","gifv","mpv"],audio:["mid","midi","aac","aiff","flac","m4a","m4p","mp3","ogg","oga","mogg","opus","ra","rm","wav","webm","f4a","pat"],documents:["pdf","ps","doc","docx","ppt","pptx","xls","otf","xlsx"],other:["swf"]},o="arc:",c={COMLINK_INIT:"".concat(o,"comlink:init"),NODE_ID:"".concat(o,":nodeId"),CDN_CONFIG:"".concat(o,"cdn:config"),P2P_CLIENT_READY:"".concat(o,"cdn:ready"),STORED_FIDS:"".concat(o,"cdn:storedFids"),SW_HEALTH_CHECK:"".concat(o,"cdn:healthCheck"),WIDGET_CONFIG:"".concat(o,"widget:config"),WIDGET_INIT:"".concat(o,"widget:init"),WIDGET_UI_LOAD:"".concat(o,"widget:load"),BROKER_LOAD:"".concat(o,"broker:load"),RENDER_FILE:"".concat(o,"inlay:renderFile"),FILE_RENDERED:"".concat(o,"inlay:fileRendered")},i="serviceWorker",a="/".concat("shared-worker",".js"),d="/".concat("dedicated-worker",".js"),f="/".concat("arc-sw-core",".js"),u="".concat("arc-sw",".js"),p=("/".concat(u),"/".concat("arc-sw"),"arc-db"),s="key-val-store",l=2**17,m="".concat("https://overmind.arc.io","/api/propertySession"),v="".concat("https://warden.arc.io","/mailbox/propertySession")}});'
-    );
-  });
-
-  app.get(
-    "/callback",
-    passport.authenticate("discord", { failureRedirect: "/" }),
-    (req, res) => {
-      if (req.cookies) {
-        const url = req.headers.referrer;
-        req.session.backURL = null;
-        res.redirect(req.cookies.referer);
-      } else {
-        res.redirect("/");
-      }
-    }
-  );
-
-  app.get("/logout", function (req, res) {
-    // We destroy the session.
-    req.session.destroy(() => {
-      // We logout the user.
-      req.logout();
-      // We redirect user to index.
-      res.redirect("/");
+    .catch((err) => {
+      console.error('MongoDB connection error:', err);
+      // Start server even if DB connection pending (allows handling)
+      server.listen(PORT, () => {
+        console.log(`B2B Store Server running on port ${PORT} (DB offline)`);
+      });
     });
-  });
+}
 
-  app.use("/", express.static("./src/static"));
-  app.use(bodyParser());
-  app.use("/", routing);
-  app.use(express.static(__dirname + "/public"));
-  app.use(cookieParser());
-
-  client.login(config.Token);
-  serverClient.login(config.ServerToken);
-  app.listen(config.port);
-
-  app.use(function (req, res) {
-    let data = {
-      user: req.data,
-      wallet: req.session,
-    };
-    res.render("error/404", data);
-  });
-
-  app.use(function (error, req, res, next) {
-    res.send("500: Internal Server Error", 500);
-    console.log(error);
-  });
-})();
+module.exports = { app, server };
