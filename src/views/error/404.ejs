@@ -1,40 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/assets/css/index.css">
-    <link rel="shortcut icon" href="">
-   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-   <link type="text/css" rel="stylesheet" media="all" href="/assets/themes/main.css" id="theme_css" />
-   <title>Botrix</title>
-   <script src="/js/main.js"></script>
-</head>
-<body id='owo'>
-    <%- include("../templates/bar") %>
-    <div style='padding: 50px 50px;'>
-        <h1 style='font-size: 200px;'>404</h1>
-        <h1>Uh oh.. You came to the wrong part of town fool<br>'tis a dingey place out here..</h1>
-        <br>
-        <p>I Suggest you go back home</p>
-        <br>
-        <a style='float: left' href='/'class='button'>Home</a>
-    </div>
+<%- include('../partials/header') %>
 
-    <script src="/js/vanta/three.r119.min.js"></script>
-<script src="/js/vanta/vanta.globe.min.js"></script>
-    <script>
-VANTA.GLOBE({
-  el: "#owo",
-  mouseControls: true,
-  touchControls: true,
-  gyroControls: false,
-  minHeight: 200.00,
-  minWidth: 200.00,
-  scale: 1.00,
-  scaleMobile: 1.00,
-  size: 1.40
-})
-    </script>
-</body>
-</html>
+<div class="max-w-md mx-auto my-16 text-center bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+  <div class="w-16 h-16 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-black">
+    404
+  </div>
+  <h2 class="text-2xl font-extrabold text-slate-900">Page Not Found</h2>
+  <p class="text-slate-500 text-xs mt-2">The page or resource you requested does not exist or has been moved.</p>
+  <a href="/" class="mt-6 inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition">
+    Return to Catalog
+  </a>
+</div>
+
+<%- include('../partials/footer') %>

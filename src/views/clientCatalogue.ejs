@@ -1,0 +1,90 @@
+<%- include('partials/header') %>
+
+<div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+  <div>
+    <div class="flex items-center space-x-2">
+      <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-md uppercase">Custom Corporate Prices</span>
+      <h1 class="text-2xl font-extrabold text-slate-900">My Quoted Catalogue</h1>
+    </div>
+    <p class="text-slate-500 text-xs mt-1">These are the items and negotiated pricing loaded specifically to your account following quote approval.</p>
+  </div>
+
+  <a href="/catalog" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center space-x-2">
+    <i class="fa-solid fa-plus"></i>
+    <span>Request Quotes for More Items</span>
+  </a>
+</div>
+
+<% if (catalogueItems && catalogueItems.length > 0) { %>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <% catalogueItems.forEach(item => { %>
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="h-36 bg-slate-50 rounded-xl p-3 mb-4 flex items-center justify-center">
+            <img src="<%= item.product.image %>" alt="<%= item.product.title %>" class="max-h-full max-w-full object-contain">
+          </div>
+          <span class="text-[10px] font-bold uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded"><%= item.product.category %></span>
+          <h3 class="font-bold text-slate-900 text-base mt-1"><%= item.product.title %></h3>
+          <p class="text-slate-500 text-xs mt-1 line-clamp-2"><%= item.product.description %></p>
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 block uppercase">Approved Contract Price</span>
+            <span class="text-xl font-extrabold text-emerald-600">$<%= item.customPrice.toFixed(2) %></span>
+          </div>
+
+          <button onclick="orderItem('<%= item.product._id %>', '<%= item.product.title %>', <%= item.customPrice %>)" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2 px-4 rounded-xl transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-cart-shopping"></i>
+            <span>Order Now</span>
+          </button>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+<% } else { %>
+  <div class="py-16 text-center bg-white rounded-2xl border border-slate-200">
+    <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+      <i class="fa-solid fa-file-invoice-dollar"></i>
+    </div>
+    <h3 class="text-lg font-bold text-slate-800">Your Catalogue is Currently Empty</h3>
+    <p class="text-slate-500 text-xs mt-1 max-w-md mx-auto">No custom prices have been loaded to your catalogue yet. Browse our product catalog, select items, and submit a quote request so our sales team can load custom contract prices for your company!</p>
+    <a href="/catalog" class="mt-5 inline-flex bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition">
+      Browse Catalog & Request Quotes
+    </a>
+  </div>
+<% } %>
+
+<script>
+  async function orderItem(productId, title, price) {
+    const qtyStr = prompt(`Enter quantity to order for ${title} at $${price.toFixed(2)}:`, "10");
+    if (!qtyStr) return;
+    const quantity = parseInt(qtyStr, 10);
+    if (isNaN(quantity) || quantity <= 0) {
+      alert("Invalid quantity.");
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/cart-orders/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          items: [{ productId, quantity }]
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Order placed successfully! Order #${data.order.orderNumber} created.`);
+        window.location.href = '/portal/orders';
+      } else {
+        alert(data.error || 'Failed to place order.');
+      }
+    } catch (err) {
+      alert('Error connecting to server.');
+    }
+  }
+</script>
+
+<%- include('partials/footer') %>

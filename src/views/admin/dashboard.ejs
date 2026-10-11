@@ -1,0 +1,37 @@
+<%- include('../partials/header') %>
+
+<div class="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+  <div>
+    <span class="text-xs font-bold text-amber-600 uppercase tracking-widest bg-amber-50 px-2.5 py-1 rounded-md">Admin Portal</span>
+    <h1 class="text-2xl font-extrabold text-slate-900 mt-2">B2B Management Console</h1>
+    <p class="text-slate-500 text-xs mt-1">Manage corporate quote requests, custom client catalogue pricing, products, orders, and live chat.</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <a href="/admin/quotes" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-indigo-500 hover:shadow-md transition">
+    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl mb-4">
+      <i class="fa-solid fa-calculator"></i>
+    </div>
+    <h3 class="font-bold text-slate-900 text-base">Quote Requests & Custom Pricing</h3>
+    <p class="text-slate-500 text-xs mt-1">Review incoming quote submissions, assign client contract prices, and load prices to client catalogues.</p>
+  </a>
+
+  <a href="/admin/orders" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-emerald-500 hover:shadow-md transition">
+    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl mb-4">
+      <i class="fa-solid fa-boxes-stacked"></i>
+    </div>
+    <h3 class="font-bold text-slate-900 text-base">Client Orders Management</h3>
+    <p class="text-slate-500 text-xs mt-1">Process orders placed by clients using their loaded custom catalogue prices.</p>
+  </a>
+
+  <a href="/admin/messages" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-blue-500 hover:shadow-md transition">
+    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl mb-4">
+      <i class="fa-solid fa-comments"></i>
+    </div>
+    <h3 class="font-bold text-slate-900 text-base">Client Support & Chat Threads</h3>
+    <p class="text-slate-500 text-xs mt-1">Communicate directly with registered corporate clients in real-time.</p>
+  </a>
+</div>
+
+<%- include('../partials/footer') %>
